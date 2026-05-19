@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/close-day", "schedule": "5 7 * * *" },
+    { "path": "/api/cron/close-day", "schedule": "35 7 * * *" }
+  ]
+}
