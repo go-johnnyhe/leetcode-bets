@@ -99,7 +99,7 @@ function Status({
 }) {
   if (user.error) {
     return (
-      <span className="ml-auto text-sm text-amber-300">leetcode unreachable</span>
+      <span className="ml-auto text-sm text-zinc-500">rechecking…</span>
     );
   }
   if (user.problemsCount >= user.target) {

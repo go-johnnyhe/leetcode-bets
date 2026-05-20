@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { fetchRecentAcSubmissions } from "./client";
 import { dayInTimezone, type AcSubmission } from "./submissions";
 import { PT_TIMEZONE, ptDateString } from "@/lib/cron/close-day";
@@ -14,15 +15,22 @@ export type TodayUserStatus = {
   error: boolean;
 };
 
+// Shared across page renders so a single 429 doesn't gate every visitor.
+// The PT date is part of the key so the cache flips cleanly at midnight.
+const getCachedRecentSubmissions = unstable_cache(
+  async (username: string, _ptDate: string): Promise<AcSubmission[]> => {
+    return fetchRecentAcSubmissions(username, { retries: 3, backoffMs: 400 });
+  },
+  ["leetcode-recent-submissions"],
+  { revalidate: 60 },
+);
+
 export async function getTodayStatus(users: User[]): Promise<TodayUserStatus[]> {
   const today = ptDateString(new Date(), 0);
   return Promise.all(
     users.map(async (u): Promise<TodayUserStatus> => {
       try {
-        const subs = await fetchRecentAcSubmissions(u.leetcodeUsername, {
-          retries: 2,
-          backoffMs: 250,
-        });
+        const subs = await getCachedRecentSubmissions(u.leetcodeUsername, today);
         const todays = filterToDay(subs, today, PT_TIMEZONE);
         const distinct = new Map<string, AcSubmission>();
         for (const s of todays) distinct.set(s.titleSlug, s);

@@ -17,6 +17,8 @@ import { LedgerLogView } from "./components/ledger-log";
 import { formatShortDate } from "@/lib/format";
 
 export const revalidate = 60;
+// Page can't prerender at build (DB env is request-time on Vercel).
+// LeetCode fetches are cached separately via unstable_cache in lib/leetcode/today.ts.
 export const dynamic = "force-dynamic";
 
 /** Heatmap auto-fits the data: at least MIN_DAYS, capped at MAX_DAYS. */
