@@ -26,6 +26,7 @@ if (existsSync(envPath)) {
 const PARTICIPANTS = [
   { id: "HJH", displayName: "Jiahui", leetcodeUsername: "lareinahu2023" },
   { id: "HMA", displayName: "Johnny", leetcodeUsername: "Dimentio233" },
+  { id: "KL", displayName: "Kyle", leetcodeUsername: "kyleung1" },
   { id: "LR", displayName: "Lorri", leetcodeUsername: "RLuo23" },
 ];
 
