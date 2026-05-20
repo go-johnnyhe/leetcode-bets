@@ -1,15 +1,101 @@
-import type { TodayUserStatus } from "@/lib/leetcode/today";
+import { getTodayStatus, type TodayUserStatus } from "@/lib/leetcode/today";
+import { getStreakData } from "@/lib/db/queries";
+import { computeStreak } from "@/lib/ledger/streaks";
 import { titleFromSlug } from "@/lib/format";
+import type { User } from "@/lib/db/schema";
 import { SectionHeading } from "./section-heading";
 
-export type TodayRow = TodayUserStatus & {
+type TodayRow = TodayUserStatus & {
   streak: number;
   longestStreak: number;
   /** Title slug of the most recent solve today, or null. */
   lastSlug: string | null;
 };
 
-export function Today({
+/** Async wrapper — slow because of the LeetCode fetch. Suspense-streamable. */
+export async function TodaySection({
+  users,
+  today,
+  hoursToDeadline,
+  refreshedAt,
+}: {
+  users: User[];
+  today: string;
+  hoursToDeadline: number;
+  refreshedAt: string;
+}) {
+  const [statuses, streakData] = await Promise.all([
+    getTodayStatus(users),
+    getStreakData(),
+  ]);
+
+  const rows: TodayRow[] = statuses.map((s) => {
+    const results = streakData
+      .filter((r) => r.userId === s.userId)
+      .map((r) => ({
+        day: r.day,
+        problemsCount: r.problemsCount,
+        target: r.target,
+        source: r.source,
+      }));
+    const { current, longest } = computeStreak({
+      results,
+      today,
+      todayMet: s.problemsCount >= s.target,
+    });
+    return {
+      ...s,
+      streak: current,
+      longestStreak: longest,
+      lastSlug: s.problemSlugs[0] ?? null,
+    };
+  });
+
+  return (
+    <Today rows={rows} hoursToDeadline={hoursToDeadline} refreshedAt={refreshedAt} />
+  );
+}
+
+/** Skeleton shown while TodaySection's data resolves. */
+export function TodaySkeleton({
+  users,
+  refreshedAt,
+}: {
+  users: User[];
+  refreshedAt: string;
+}) {
+  return (
+    <section className="mt-16">
+      <SectionHeading meta={`refreshed ${refreshedAt} PT`}>Today</SectionHeading>
+      <ul className="animate-pulse space-y-7">
+        {users.map((u) => (
+          <li
+            key={u.id}
+            className="grid grid-cols-[5rem_1fr] gap-x-5 gap-y-1.5"
+          >
+            <span className="text-base font-medium text-zinc-100">
+              {u.displayName}
+            </span>
+            <div className="flex items-center gap-5">
+              <div className="flex shrink-0 items-center gap-1">
+                {Array.from({ length: u.dailyTarget }).map((_, i) => (
+                  <span key={i} className="h-2 w-7 rounded-sm bg-zinc-800" />
+                ))}
+              </div>
+              <span className="font-mono text-sm text-zinc-500">
+                — / {u.dailyTarget}
+              </span>
+            </div>
+            <span aria-hidden />
+            <span className="text-sm text-zinc-500">…</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Today({
   rows,
   hoursToDeadline,
   refreshedAt,

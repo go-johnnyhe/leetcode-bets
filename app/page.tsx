@@ -1,16 +1,14 @@
+import { Suspense } from "react";
 import {
   getAllUsers,
   getBalanceMatrix,
   getHeatmapData,
   getHeroStats,
   getLedgerLog,
-  getStreakData,
 } from "@/lib/db/queries";
-import { getTodayStatus } from "@/lib/leetcode/today";
 import { ptDateString, PT_TIMEZONE } from "@/lib/cron/close-day";
-import { computeStreak } from "@/lib/ledger/streaks";
 import { Hero } from "./components/hero";
-import { Today, type TodayRow } from "./components/today";
+import { TodaySection, TodaySkeleton } from "./components/today";
 import { Balances } from "./components/balances";
 import { Heatmap } from "./components/heatmap";
 import { LedgerLogView } from "./components/ledger-log";
@@ -30,7 +28,7 @@ export default async function Dashboard() {
   const users = await getAllUsers();
   const today = ptDateString(new Date(), 0);
 
-  // Run hero stats first so we can size the heatmap to the actual data range.
+  // Hero stats first so we can size the heatmap to the actual data range.
   const heroStats = await getHeroStats();
 
   const heatmapDays = (() => {
@@ -41,36 +39,13 @@ export default async function Dashboard() {
     return Math.min(HEATMAP_MAX_DAYS, Math.max(HEATMAP_MIN_DAYS, span));
   })();
 
-  const [todayStatuses, balances, heatmap, ledger, streakData] =
-    await Promise.all([
-      getTodayStatus(users),
-      getBalanceMatrix(),
-      getHeatmapData(heatmapDays),
-      getLedgerLog(LEDGER_DAYS),
-      getStreakData(),
-    ]);
-
-  const todayRows: TodayRow[] = todayStatuses.map((s) => {
-    const streakInput = {
-      results: streakData
-        .filter((r) => r.userId === s.userId)
-        .map((r) => ({
-          day: r.day,
-          problemsCount: r.problemsCount,
-          target: r.target,
-          source: r.source,
-        })),
-      today,
-      todayMet: s.problemsCount >= s.target,
-    };
-    const { current, longest } = computeStreak(streakInput);
-    return {
-      ...s,
-      streak: current,
-      longestStreak: longest,
-      lastSlug: s.problemSlugs[0] ?? null,
-    };
-  });
+  // Fast DB queries — these gate the initial shell.
+  // The slow LeetCode-dependent Today section streams in via Suspense below.
+  const [balances, heatmap, ledger] = await Promise.all([
+    getBalanceMatrix(),
+    getHeatmapData(heatmapDays),
+    getLedgerLog(LEDGER_DAYS),
+  ]);
 
   const refreshedAt = formatTime(new Date());
   const hoursToDeadline = hoursUntilDeadlinePT(new Date());
@@ -79,11 +54,16 @@ export default async function Dashboard() {
     <main className="mx-auto max-w-3xl px-6 pb-20 pt-16">
       <Hero stats={heroStats} today={formatShortDate(today)} />
 
-      <Today
-        rows={todayRows}
-        hoursToDeadline={hoursToDeadline}
-        refreshedAt={refreshedAt}
-      />
+      <Suspense
+        fallback={<TodaySkeleton users={users} refreshedAt={refreshedAt} />}
+      >
+        <TodaySection
+          users={users}
+          today={today}
+          hoursToDeadline={hoursToDeadline}
+          refreshedAt={refreshedAt}
+        />
+      </Suspense>
 
       <Balances
         users={users.map((u) => ({ id: u.id, displayName: u.displayName }))}
