@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTodayStatus, type TodayUserStatus } from "@/lib/leetcode/today";
 import { getStreakData } from "@/lib/db/queries";
 import { computeStreak } from "@/lib/ledger/streaks";
@@ -73,9 +74,12 @@ export function TodaySkeleton({
             key={u.id}
             className="grid grid-cols-[5rem_1fr] gap-x-5 gap-y-1.5"
           >
-            <span className="text-base font-medium text-zinc-100">
+            <Link
+              href={`/u/${u.leetcodeUsername}`}
+              className="text-base font-medium text-zinc-100 no-underline hover:underline"
+            >
               {u.displayName}
-            </span>
+            </Link>
             <div className="flex items-center gap-5">
               <div className="flex shrink-0 items-center gap-1">
                 {Array.from({ length: u.dailyTarget }).map((_, i) => (
@@ -115,9 +119,12 @@ function Today({
             key={u.userId}
             className="grid grid-cols-[5rem_1fr] gap-x-5 gap-y-1.5"
           >
-            <span className="text-base font-medium text-zinc-100">
+            <Link
+              href={`/u/${u.leetcodeUsername}`}
+              className="text-base font-medium text-zinc-100 no-underline hover:underline"
+            >
               {u.displayName}
-            </span>
+            </Link>
             <div className="flex items-center gap-5">
               <ProgressBar count={u.problemsCount} target={u.target} />
               <span className="font-mono text-sm tabular-nums text-zinc-300">

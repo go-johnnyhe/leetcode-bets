@@ -66,19 +66,31 @@ export default async function Dashboard() {
       </Suspense>
 
       <Balances
-        users={users.map((u) => ({ id: u.id, displayName: u.displayName }))}
+        users={users.map((u) => ({
+          id: u.id,
+          displayName: u.displayName,
+          leetcodeUsername: u.leetcodeUsername,
+        }))}
         balances={balances}
       />
 
       <Heatmap
-        users={users.map((u) => ({ id: u.id, displayName: u.displayName }))}
+        users={users.map((u) => ({
+          id: u.id,
+          displayName: u.displayName,
+          leetcodeUsername: u.leetcodeUsername,
+        }))}
         cells={heatmap}
         endDay={today}
         daysBack={heatmapDays}
       />
 
       <LedgerLogView
-        users={users.map((u) => ({ id: u.id, displayName: u.displayName }))}
+        users={users.map((u) => ({
+          id: u.id,
+          displayName: u.displayName,
+          leetcodeUsername: u.leetcodeUsername,
+        }))}
         log={ledger}
         daysBack={LEDGER_DAYS}
       />

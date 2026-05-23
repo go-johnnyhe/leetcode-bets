@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { settleAction } from "../actions";
 import { formatMoney } from "@/lib/format";
 import { SectionHeading } from "./section-heading";
 
-type UserLite = { id: string; displayName: string };
+type UserLite = { id: string; displayName: string; leetcodeUsername: string };
 type Balance = { debtorId: string; creditorId: string; amountCents: number };
 
 export function Balances({
@@ -30,7 +31,12 @@ export function Balances({
             <th className="py-2 text-left font-normal" />
             {users.map((u) => (
               <th key={u.id} className="py-2 text-right font-normal">
-                {u.displayName}
+                <Link
+                  href={`/u/${u.leetcodeUsername}`}
+                  className="no-underline hover:underline"
+                >
+                  {u.displayName}
+                </Link>
               </th>
             ))}
           </tr>
@@ -38,7 +44,14 @@ export function Balances({
         <tbody>
           {users.map((debtor) => (
             <tr key={debtor.id} className="border-t border-zinc-800">
-              <td className="py-3 pr-4 text-zinc-200">{debtor.displayName}</td>
+              <td className="py-3 pr-4 text-zinc-200">
+                <Link
+                  href={`/u/${debtor.leetcodeUsername}`}
+                  className="no-underline hover:underline"
+                >
+                  {debtor.displayName}
+                </Link>
+              </td>
               {users.map((creditor) => {
                 if (debtor.id === creditor.id) {
                   return (

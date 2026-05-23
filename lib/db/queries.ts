@@ -12,6 +12,54 @@ export async function getAllUsers(): Promise<User[]> {
   return db.select().from(users).orderBy(users.id);
 }
 
+export async function getUserByLeetcodeUsername(
+  username: string,
+): Promise<User | null> {
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.leetcodeUsername, username))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export type UserProblemDay = {
+  day: string;
+  problemsCount: number;
+  problemSlugs: string[];
+  target: number;
+  source: string;
+};
+
+export async function getUserProblemHistory(
+  userId: string,
+): Promise<UserProblemDay[]> {
+  const rows = await db
+    .select({
+      day: dailyResults.day,
+      problemsCount: dailyResults.problemsCount,
+      problemSlugs: dailyResults.problemSlugs,
+      source: dailyResults.source,
+      target: users.dailyTarget,
+    })
+    .from(dailyResults)
+    .innerJoin(users, eq(users.id, dailyResults.userId))
+    .where(
+      and(
+        eq(dailyResults.userId, userId),
+        sql`${dailyResults.source} <> 'pending_fetch'`,
+      ),
+    )
+    .orderBy(desc(dailyResults.day));
+  return rows.map((r) => ({
+    day: String(r.day),
+    problemsCount: r.problemsCount,
+    problemSlugs: r.problemSlugs,
+    target: r.target,
+    source: r.source,
+  }));
+}
+
 export type BalanceCell = {
   debtorId: string;
   creditorId: string;
@@ -105,8 +153,14 @@ export type HeatmapCell = {
   source: string;
 };
 
-export async function getHeatmapData(daysBack: number): Promise<HeatmapCell[]> {
+export async function getHeatmapData(
+  daysBack: number,
+  userId?: string,
+): Promise<HeatmapCell[]> {
   const cutoff = sql<string>`(current_date - ${daysBack}::int)`;
+  const whereClause = userId
+    ? and(gte(dailyResults.day, cutoff), eq(dailyResults.userId, userId))
+    : gte(dailyResults.day, cutoff);
   const rows = await db
     .select({
       userId: dailyResults.userId,
@@ -117,7 +171,7 @@ export async function getHeatmapData(daysBack: number): Promise<HeatmapCell[]> {
     })
     .from(dailyResults)
     .innerJoin(users, eq(users.id, dailyResults.userId))
-    .where(gte(dailyResults.day, cutoff));
+    .where(whereClause);
 
   return rows.map((r) => ({
     userId: r.userId,

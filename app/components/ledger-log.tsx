@@ -1,8 +1,9 @@
+import Link from "next/link";
 import type { LedgerEvent, LedgerLog } from "@/lib/db/queries";
 import { formatMoney, formatShortDate } from "@/lib/format";
 import { SectionHeading } from "./section-heading";
 
-type UserLite = { id: string; displayName: string };
+type UserLite = { id: string; displayName: string; leetcodeUsername: string };
 
 export function LedgerLogView({
   users,
@@ -13,8 +14,18 @@ export function LedgerLogView({
   log: LedgerLog;
   daysBack: number;
 }) {
-  const nameOf = (id: string) =>
-    users.find((u) => u.id === id)?.displayName ?? id;
+  const nameLink = (id: string): React.ReactNode => {
+    const u = users.find((x) => x.id === id);
+    if (!u) return id;
+    return (
+      <Link
+        href={`/u/${u.leetcodeUsername}`}
+        className="text-zinc-100 no-underline hover:underline"
+      >
+        {u.displayName}
+      </Link>
+    );
+  };
 
   if (log.events.length === 0) {
     return (
@@ -48,7 +59,7 @@ export function LedgerLogView({
             <ul className="space-y-1.5">
               {byDay.get(day)!.map((e, i) => (
                 <li key={i} className="text-sm text-zinc-300">
-                  {renderEvent(e, nameOf)}
+                  {renderEvent(e, nameLink)}
                 </li>
               ))}
             </ul>
@@ -61,28 +72,32 @@ export function LedgerLogView({
 
 function renderEvent(
   e: LedgerEvent,
-  nameOf: (id: string) => string,
+  nameLink: (id: string) => React.ReactNode,
 ): React.ReactNode {
   if (e.kind === "miss") {
     const total = e.perCreditorCents * e.creditors.length;
     return (
       <span>
-        <span className="text-zinc-100">{nameOf(e.debtorId)}</span> missed{" "}
+        {nameLink(e.debtorId)} missed{" "}
         <span className="font-mono">{e.missedCount}</span>{" "}
         {e.missedCount === 1 ? "problem" : "problems"} ·{" "}
         <span className="font-mono text-amber-300">−{formatMoney(total)}</span>{" "}
         <span className="text-zinc-500">
-          ({e.creditors
-            .map((c) => `${formatMoney(e.perCreditorCents)} → ${nameOf(c)}`)
-            .join(", ")})
+          (
+          {e.creditors.map((c, i) => (
+            <span key={c}>
+              {i > 0 && ", "}
+              {formatMoney(e.perCreditorCents)} → {nameLink(c)}
+            </span>
+          ))}
+          )
         </span>
       </span>
     );
   }
   return (
     <span>
-      <span className="text-zinc-100">{nameOf(e.debtorId)}</span> settled with{" "}
-      <span className="text-zinc-100">{nameOf(e.creditorId)}</span>{" "}
+      {nameLink(e.debtorId)} settled with {nameLink(e.creditorId)}{" "}
       <span className="font-mono text-emerald-400">
         {formatMoney(e.amountCents)}
       </span>

@@ -1,8 +1,9 @@
+import Link from "next/link";
 import type { HeatmapCell } from "@/lib/db/queries";
 import { shiftDay } from "@/lib/ledger/streaks";
 import { SectionHeading } from "./section-heading";
 
-type UserLite = { id: string; displayName: string };
+type UserLite = { id: string; displayName: string; leetcodeUsername: string };
 
 export function Heatmap({
   users,
@@ -35,9 +36,12 @@ export function Heatmap({
         <div className="inline-block min-w-full">
           {users.map((u) => (
             <div key={u.id} className="mb-2 flex items-center gap-4">
-              <span className="w-20 shrink-0 text-sm text-zinc-300">
+              <Link
+                href={`/u/${u.leetcodeUsername}`}
+                className="w-20 shrink-0 text-sm text-zinc-300 no-underline hover:underline"
+              >
                 {u.displayName}
-              </span>
+              </Link>
               <div className="flex gap-[3px]">
                 {days.map((d) => (
                   <Cell

@@ -7,6 +7,7 @@ import type { User } from "@/lib/db/schema";
 export type TodayUserStatus = {
   userId: string;
   displayName: string;
+  leetcodeUsername: string;
   problemsCount: number;
   target: number;
   problemSlugs: string[];
@@ -42,6 +43,7 @@ export async function getTodayStatus(users: User[]): Promise<TodayUserStatus[]> 
         return {
           userId: u.id,
           displayName: u.displayName,
+          leetcodeUsername: u.leetcodeUsername,
           problemsCount: slugs.length,
           target: u.dailyTarget,
           problemSlugs: slugs,
@@ -52,6 +54,7 @@ export async function getTodayStatus(users: User[]): Promise<TodayUserStatus[]> 
         return {
           userId: u.id,
           displayName: u.displayName,
+          leetcodeUsername: u.leetcodeUsername,
           problemsCount: 0,
           target: u.dailyTarget,
           problemSlugs: [],
