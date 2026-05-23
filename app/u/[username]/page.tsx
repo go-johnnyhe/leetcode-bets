@@ -14,7 +14,8 @@ import { SectionHeading } from "@/app/components/section-heading";
 export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
-const HEATMAP_DAYS = 90;
+const HEATMAP_MIN_DAYS = 14;
+const HEATMAP_MAX_DAYS = 90;
 
 export default async function UserPage({
   params,
@@ -26,10 +27,23 @@ export default async function UserPage({
   if (!user) notFound();
 
   const today = ptDateString(new Date(), 0);
-  const [history, heatmap] = await Promise.all([
-    getUserProblemHistory(user.id),
-    getHeatmapData(HEATMAP_DAYS, user.id),
-  ]);
+  const history = await getUserProblemHistory(user.id);
+
+  // Earliest day this user has any tracked data. Falls back to the seed
+  // createdAt only if there's no history yet (e.g. someone added today).
+  const earliestDay =
+    history.length > 0
+      ? history[history.length - 1].day
+      : ptDateString(user.createdAt, 0);
+
+  const heatmapDays = (() => {
+    const ms =
+      Date.now() - new Date(`${earliestDay}T12:00:00Z`).getTime();
+    const span = Math.floor(ms / 86_400_000) + 1;
+    return Math.min(HEATMAP_MAX_DAYS, Math.max(HEATMAP_MIN_DAYS, span));
+  })();
+
+  const heatmap = await getHeatmapData(heatmapDays, user.id);
 
   const todayRow = history.find((r) => r.day === today);
   const todayMet = !!todayRow && todayRow.problemsCount >= todayRow.target;
@@ -45,8 +59,6 @@ export default async function UserPage({
   });
 
   const totalProblems = history.reduce((sum, r) => sum + r.problemsCount, 0);
-
-  const joinedDay = ptDateString(user.createdAt, 0);
 
   const userLite = {
     id: user.id,
@@ -74,7 +86,7 @@ export default async function UserPage({
           >
             @{user.leetcodeUsername}
           </a>{" "}
-          · joined {formatShortDate(joinedDay)} · target {user.dailyTarget}/day
+          · since {formatShortDate(earliestDay)} · target {user.dailyTarget}/day
         </p>
         <div className="mx-auto mt-10 grid max-w-md grid-cols-3 gap-6">
           <Stat value={totalProblems.toString()} label="problems solved" />
@@ -87,7 +99,7 @@ export default async function UserPage({
         users={[userLite]}
         cells={heatmap}
         endDay={today}
-        daysBack={HEATMAP_DAYS}
+        daysBack={heatmapDays}
       />
 
       <section className="mt-16">
@@ -101,7 +113,7 @@ export default async function UserPage({
         ) : (
           <ol className="space-y-5">
             {history
-              .filter((r) => r.problemSlugs.length > 0)
+              .filter((r) => r.problemsCount > 0)
               .map((r) => (
                 <li
                   key={r.day}
@@ -110,19 +122,27 @@ export default async function UserPage({
                   <span className="pt-px font-serif text-sm italic text-zinc-500">
                     {formatShortDate(r.day)}
                   </span>
-                  <ul className="space-y-1.5">
-                    {r.problemSlugs.map((slug) => (
-                      <li key={slug} className="text-sm text-zinc-300">
-                        <a
-                          href={`https://leetcode.com/problems/${slug}/`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {titleFromSlug(slug)}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  {r.problemSlugs.length > 0 ? (
+                    <ul className="space-y-1.5">
+                      {r.problemSlugs.map((slug) => (
+                        <li key={slug} className="text-sm text-zinc-300">
+                          <a
+                            href={`https://leetcode.com/problems/${slug}/`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {titleFromSlug(slug)}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm italic text-zinc-500">
+                      {r.problemsCount}{" "}
+                      {r.problemsCount === 1 ? "problem" : "problems"} · titles
+                      not recorded
+                    </p>
+                  )}
                 </li>
               ))}
           </ol>
