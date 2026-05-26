@@ -30,6 +30,15 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
+/** Monday-of-week for a 'YYYY-MM-DD' day, Monday-based. Sunday rolls back six days. */
+export function mondayOfWeek(day: string): string {
+  const [y, m, d] = day.split("-").map((n) => Number.parseInt(n, 10));
+  const t = Date.UTC(y, m - 1, d, 12, 0, 0);
+  const dow = new Date(t).getUTCDay(); // 0=Sun ... 6=Sat
+  const back = dow === 0 ? 6 : dow - 1;
+  return shiftDay(day, -back);
+}
+
 function passes(r: DailyResultLite): boolean {
   return r.source !== "pending_fetch" && r.problemsCount >= r.target;
 }

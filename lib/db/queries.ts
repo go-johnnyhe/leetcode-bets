@@ -182,6 +182,34 @@ export async function getHeatmapData(
   }));
 }
 
+export type WeeklyPastTotal = { userId: string; problems: number };
+
+/**
+ * Per-user sum of `daily_results.problems_count` for finalized days in
+ * [weekStart, today). Today is excluded so callers can layer live LeetCode
+ * counts on top without double-counting after the cron has run.
+ */
+export async function getWeeklyPastTotals(
+  weekStart: string,
+  today: string,
+): Promise<WeeklyPastTotal[]> {
+  const rows = await db
+    .select({
+      userId: dailyResults.userId,
+      total: sql<number>`coalesce(sum(${dailyResults.problemsCount}), 0)`,
+    })
+    .from(dailyResults)
+    .where(
+      and(
+        gte(dailyResults.day, sql`${weekStart}::date`),
+        sql`${dailyResults.day} < ${today}::date`,
+        sql`${dailyResults.source} <> 'pending_fetch'`,
+      ),
+    )
+    .groupBy(dailyResults.userId);
+  return rows.map((r) => ({ userId: r.userId, problems: Number(r.total) }));
+}
+
 export async function getStreakData(): Promise<
   Array<{ userId: string; day: string; problemsCount: number; target: number; source: string }>
 > {

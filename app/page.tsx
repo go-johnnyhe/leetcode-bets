@@ -5,13 +5,19 @@ import {
   getHeatmapData,
   getHeroStats,
   getLedgerLog,
+  getWeeklyPastTotals,
 } from "@/lib/db/queries";
 import { ptDateString, PT_TIMEZONE } from "@/lib/cron/close-day";
+import { mondayOfWeek } from "@/lib/ledger/streaks";
 import { Hero } from "./components/hero";
 import { TodaySection, TodaySkeleton } from "./components/today";
 import { Balances } from "./components/balances";
 import { Heatmap } from "./components/heatmap";
 import { LedgerLogView } from "./components/ledger-log";
+import {
+  WeeklyLeaderboardSection,
+  WeeklyLeaderboardSkeleton,
+} from "./components/weekly-leaderboard";
 import { formatShortDate } from "@/lib/format";
 
 export const revalidate = 60;
@@ -39,12 +45,15 @@ export default async function Dashboard() {
     return Math.min(HEATMAP_MAX_DAYS, Math.max(HEATMAP_MIN_DAYS, span));
   })();
 
+  const weekStart = mondayOfWeek(today);
+
   // Fast DB queries — these gate the initial shell.
   // The slow LeetCode-dependent Today section streams in via Suspense below.
-  const [balances, heatmap, ledger] = await Promise.all([
+  const [balances, heatmap, ledger, weeklyPast] = await Promise.all([
     getBalanceMatrix(),
     getHeatmapData(heatmapDays),
     getLedgerLog(LEDGER_DAYS),
+    getWeeklyPastTotals(weekStart, today),
   ]);
 
   const refreshedAt = formatTime(new Date());
@@ -62,6 +71,18 @@ export default async function Dashboard() {
           today={today}
           hoursToDeadline={hoursToDeadline}
           refreshedAt={refreshedAt}
+        />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <WeeklyLeaderboardSkeleton users={users} weekStart={weekStart} />
+        }
+      >
+        <WeeklyLeaderboardSection
+          users={users}
+          weekStart={weekStart}
+          pastTotals={weeklyPast}
         />
       </Suspense>
 

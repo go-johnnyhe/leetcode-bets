@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak, shiftDay } from "@/lib/ledger/streaks";
+import { computeStreak, mondayOfWeek, shiftDay } from "@/lib/ledger/streaks";
 
 function row(day: string, count: number, target = 2, source = "cron") {
   return { day, problemsCount: count, target, source };
@@ -16,6 +16,28 @@ describe("shiftDay", () => {
     // Spring forward day in PT (Mar 8, 2026). Walking back one day shouldn't lose 23h.
     expect(shiftDay("2026-03-09", -1)).toBe("2026-03-08");
     expect(shiftDay("2026-03-08", -1)).toBe("2026-03-07");
+  });
+});
+
+describe("mondayOfWeek", () => {
+  it("returns the same day for a Monday", () => {
+    // 2026-05-25 is a Monday.
+    expect(mondayOfWeek("2026-05-25")).toBe("2026-05-25");
+  });
+
+  it("rolls Saturday back to the prior Monday", () => {
+    // 2026-05-30 is a Saturday.
+    expect(mondayOfWeek("2026-05-30")).toBe("2026-05-25");
+  });
+
+  it("rolls Sunday back to the prior Monday (six days)", () => {
+    // 2026-05-31 is a Sunday.
+    expect(mondayOfWeek("2026-05-31")).toBe("2026-05-25");
+  });
+
+  it("handles a year boundary", () => {
+    // 2027-01-01 is a Friday. Monday of that week is 2026-12-28.
+    expect(mondayOfWeek("2027-01-01")).toBe("2026-12-28");
   });
 });
 
