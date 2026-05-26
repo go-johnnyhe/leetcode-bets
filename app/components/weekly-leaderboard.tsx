@@ -42,31 +42,28 @@ export async function WeeklyLeaderboardSection({
   return (
     <section className="mt-16">
       <SectionHeading meta={weekMeta(weekStart)}>Weekly</SectionHeading>
-      <ul className="space-y-4">
+      <ol className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
         {rows.map((r) => {
           const isLeader = leaderActive && r.total === top;
           return (
-            <li
-              key={r.user.id}
-              className="grid grid-cols-[5rem_1fr] items-baseline gap-x-5"
-            >
-              <Link
-                href={`/u/${r.user.leetcodeUsername}`}
-                className="text-base font-medium text-zinc-100 no-underline hover:underline"
-              >
-                {r.user.displayName}
-              </Link>
-              <span
-                className={`font-mono text-sm tabular-nums ${
-                  isLeader ? "text-emerald-300" : "text-zinc-300"
+            <li key={r.user.id} className="text-center">
+              <div
+                className={`font-mono text-3xl tabular-nums ${
+                  isLeader ? "text-emerald-300" : "text-zinc-100"
                 }`}
               >
                 {r.total}
-              </span>
+              </div>
+              <Link
+                href={`/u/${r.user.leetcodeUsername}`}
+                className="mt-1 block font-serif text-xs italic text-zinc-500 no-underline hover:text-zinc-300"
+              >
+                {r.user.displayName}
+              </Link>
             </li>
           );
         })}
-      </ul>
+      </ol>
     </section>
   );
 }
@@ -81,24 +78,21 @@ export function WeeklyLeaderboardSkeleton({
   return (
     <section className="mt-16">
       <SectionHeading meta={weekMeta(weekStart)}>Weekly</SectionHeading>
-      <ul className="animate-pulse space-y-4">
+      <ol className="grid animate-pulse grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
         {users.map((u) => (
-          <li
-            key={u.id}
-            className="grid grid-cols-[5rem_1fr] items-baseline gap-x-5"
-          >
+          <li key={u.id} className="text-center">
+            <div className="font-mono text-3xl tabular-nums text-zinc-500">
+              —
+            </div>
             <Link
               href={`/u/${u.leetcodeUsername}`}
-              className="text-base font-medium text-zinc-100 no-underline hover:underline"
+              className="mt-1 block font-serif text-xs italic text-zinc-500 no-underline"
             >
               {u.displayName}
             </Link>
-            <span className="font-mono text-sm tabular-nums text-zinc-500">
-              —
-            </span>
           </li>
         ))}
-      </ul>
+      </ol>
     </section>
   );
 }
